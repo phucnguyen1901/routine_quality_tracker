@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:routine_quality_tracker/custom_datetime.dart';
 import 'package:routine_quality_tracker/device_size.dart';
 import 'package:routine_quality_tracker/primary_background.dart';
+import 'package:routine_quality_tracker/stats_model.dart';
 import 'package:routine_quality_tracker/stroke_text.dart';
 
 void main() {
@@ -42,10 +43,47 @@ class _MyHomePageState extends State<MyHomePage> {
     "Gratitude Journal",
     "My stats"
   ];
+  List moodNames = ["great", "fine", "not very good", "bad", "terrible"];
+  List sleepNames = [
+    "good sleep",
+    "average sleep",
+    "insufficient sleep",
+    "insomnia"
+  ];
+
+  List moodPath = ["bb3.png", "bb2.png", "bb4.png", "bb5.png", "bb1.png"];
+  List sleepsPath = [
+    "aa1.png",
+    "aa4.png",
+    "aa2.png",
+    "aa3.png",
+  ];
+
   List<String> notes = [];
-  Menu currentMenu = Menu.routineQualityTracker;
+  Menu currentMenu = Menu.myStats2;
   CustomDateTime customDateTime = const CustomDateTime();
   double sliderValue = 0.0;
+
+  List<Stats> stats = [
+    Stats(
+        date: DateTime.now(),
+        time: "12:00",
+        moodIndex: 1,
+        sleepStatsIndex: 2,
+        percent: 0.8,
+        activitiesTracker: [],
+        plansTracker: [],
+        gratitudeJournal: []),
+    Stats(
+        date: DateTime.now(),
+        time: "11:00",
+        moodIndex: 2,
+        sleepStatsIndex: 1,
+        percent: 0.3,
+        activitiesTracker: [],
+        plansTracker: [],
+        gratitudeJournal: []),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +129,9 @@ class _MyHomePageState extends State<MyHomePage> {
       case Menu.gratitudeJournal:
         return gratitudeJournal();
       case Menu.myStats:
-        return planTracker();
+        return myStats();
+      case Menu.myStats2:
+        return myStats2();
       default:
     }
   }
@@ -113,7 +153,9 @@ class _MyHomePageState extends State<MyHomePage> {
       case Menu.gratitudeJournal:
         return titles[5];
       case Menu.myStats:
-        return titles[5];
+        return titles[6];
+      case Menu.myStats2:
+        return titles[6];
       default:
     }
   }
@@ -200,10 +242,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               const SizedBox(height: 20),
-              Image.asset(
-                "assets/images/Group 7.png",
-                scale: 0.1,
-                width: DeviceSize.width(context, partNumber: 5),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    currentMenu = Menu.myStats;
+                  });
+                },
+                child: Image.asset(
+                  "assets/images/Group 7.png",
+                  scale: 0.1,
+                  width: DeviceSize.width(context, partNumber: 5),
+                ),
               ),
             ],
           ),
@@ -356,7 +405,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       const SizedBox(height: 40),
-      progressbar(context)
+      progressbar()
     ]);
   }
 
@@ -387,7 +436,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   calendarWidget() {
     List paths = ["b3.png", "b2.png", "b4.png", "b5.png", "b1.png"];
-    List name = ["great", "fine", "not very good", "bad", "terrible"];
     List<Color> colors = const [
       Color.fromRGBO(0, 173, 152, 1),
       Color.fromRGBO(118, 173, 0, 1),
@@ -430,7 +478,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         Image.asset("assets/icons/${paths[index]}"),
                         const SizedBox(height: 5),
                         Text(
-                          name[index],
+                          moodNames[index],
                           style: TextStyle(fontSize: 13, color: colors[index]),
                         )
                       ],
@@ -443,12 +491,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   sleepTrackWidget() {
     List paths = ["a1.png", "a2.png", "a3.png", "a4.png"];
-    List name = [
-      "good sleep",
-      "average sleep",
-      "insufficient sleep",
-      "insomnia"
-    ];
+
     List<Color> colors = const [
       Color.fromRGBO(0, 173, 152, 1),
       Color.fromRGBO(118, 173, 0, 1),
@@ -491,7 +534,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       SizedBox(
                         width: 75,
                         child: Text(
-                          name[index],
+                          moodNames[index],
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 13, color: colors[index]),
                         ),
@@ -634,7 +677,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ]);
   }
 
-  progressbar(context) {
+  progressbar() {
     return Center(
       child: SizedBox(
         width: DeviceSize.height(context, partNumber: 4) - 20,
@@ -800,6 +843,251 @@ class _MyHomePageState extends State<MyHomePage> {
       )
     ]);
   }
+
+  myStats() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: GestureDetector(
+            onTap: () {
+              setState(() {
+                currentMenu = Menu.routineQualityTracker;
+              });
+            },
+            child: Image.asset("assets/icons/Group 2.png")),
+      ),
+      const SizedBox(height: 80),
+      SizedBox(
+        height: DeviceSize.height(context, partNumber: 7) + 20,
+        child: ListView.separated(
+            shrinkWrap: true,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 50,
+                      padding: const EdgeInsets.only(left: 20),
+                      decoration: const BoxDecoration(
+                          color: Color.fromRGBO(194, 235, 249, 1),
+                          borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16))),
+                      child: Row(children: [
+                        Image.asset(
+                          "assets/icons/calendar2.png",
+                          width: 30,
+                          height: 30,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text("today: 12.02.24, 12:00")
+                      ]),
+                    ),
+                    Container(
+                      color: Colors.white.withOpacity(0.7),
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      height: 100,
+                      child: Stack(
+                        children: [
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                                Row(
+                                  children: [
+                                    Image.asset("assets/icons/${moodPath[0]}"),
+                                    const SizedBox(width: 5),
+                                    Text(moodNames[stats[index].moodIndex]),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Image.asset(
+                                        "assets/icons/${sleepsPath[0]}"),
+                                    const SizedBox(width: 5),
+                                    Text(sleepNames[
+                                        stats[index].sleepStatsIndex])
+                                  ],
+                                ),
+                              ]),
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 130.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  progressbarStatic(stats[index].percent),
+                                  const SizedBox(height: 3),
+                                  const Text("Activities Tracker")
+                                ],
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemCount: stats.length),
+      )
+    ]);
+  }
+
+  myStats2() {
+    return Padding(
+      padding: EdgeInsets.only(
+          top: DeviceSize.height(context, partNumber: 2), left: 16, right: 16),
+      child: Column(
+        children: [
+          Container(
+            height: 50,
+            padding: const EdgeInsets.only(left: 20),
+            decoration: const BoxDecoration(
+                color: Color.fromRGBO(194, 235, 249, 1),
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16))),
+            child: Row(children: [
+              Image.asset(
+                "assets/icons/calendar2.png",
+                width: 30,
+                height: 30,
+              ),
+              const SizedBox(width: 10),
+              const Text("today: 12.02.24, 12:00")
+            ]),
+          ),
+          Container(
+            color: Colors.white.withOpacity(0.7),
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            height: DeviceSize.height(context, partNumber: 8) - 110,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Row(
+                    children: [
+                      Image.asset("assets/icons/${moodPath[0]}"),
+                      const SizedBox(width: 5),
+                      Text(moodNames[stats[1].moodIndex]),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Image.asset("assets/icons/${sleepsPath[0]}"),
+                      const SizedBox(width: 5),
+                      Text(sleepNames[stats[1].sleepStatsIndex])
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Image.asset(
+                    "assets/images/Group 4.png",
+                    width: DeviceSize.width(context, partNumber: 4),
+                  ),
+                  const SizedBox(height: 10),
+                  ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) => const Text("OK"),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 5),
+                      itemCount: 3),
+                  const SizedBox(height: 10),
+                  Image.asset(
+                    "assets/images/Group 5.png",
+                    width: DeviceSize.width(context, partNumber: 4),
+                  ),
+                  const SizedBox(height: 10),
+                  ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) => const Text("OK"),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 5),
+                      itemCount: 7),
+                  const SizedBox(height: 10),
+                  Image.asset(
+                    "assets/images/Group 6.png",
+                    width: DeviceSize.width(context, partNumber: 4),
+                  ),
+                  const SizedBox(height: 10),
+                  ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) => const Text("OK"),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 5),
+                      itemCount: 5),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  progressbarStatic(percent) {
+    return Center(
+      child: SizedBox(
+        width: DeviceSize.height(context, partNumber: 2) + 30,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+                left: 10,
+                child: Text("${(percent * 100).toStringAsFixed(0)}%")),
+            SizedBox(
+              width: DeviceSize.width(context, partNumber: 2) + 25,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(width: 3)),
+                    height: 20,
+                  ),
+                  Positioned(
+                    left: 0,
+                    child: Container(
+                      height: 20,
+                      width: percent <= 0.03
+                          ? 10
+                          : DeviceSize.width(context, partNumber: 2) * percent +
+                              25,
+                      decoration: BoxDecoration(
+                          color: percent >= 0.3
+                              ? percent >= 0.7
+                                  ? const Color.fromRGBO(45, 211, 122, 1)
+                                  : const Color.fromRGBO(65, 75, 166, 1)
+                              : const Color.fromRGBO(246, 63, 0, 1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(width: 3)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Positioned(right: 0, child: Text("100%")),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 enum Menu {
@@ -810,5 +1098,6 @@ enum Menu {
   activitiesTracker2,
   planTracker,
   gratitudeJournal,
-  myStats
+  myStats,
+  myStats2
 }
