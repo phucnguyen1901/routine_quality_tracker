@@ -61,7 +61,7 @@ class _CustomDateTimeState extends State<CustomDateTime> {
               focusedDay: dateTime,
               firstDay: DateTime(2018),
               lastDay: DateTime(2100),
-              currentDay: dateTime,
+              currentDay: DateTime.now(),
               headerVisible: false,
               daysOfWeekHeight: 32,
               daysOfWeekStyle: const DaysOfWeekStyle(
