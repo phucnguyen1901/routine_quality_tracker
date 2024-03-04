@@ -1,4 +1,4 @@
-package com.example.routine_quality_tracker
+package com.routinequalitytrackerapp
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -28,19 +28,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Routine Quality Tracker',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
+  const MyHomePage({super.key});
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
@@ -91,12 +90,16 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> gratitudeJournalList = [];
 
   Menu currentMenu = Menu.routineQualityTracker;
-  CustomDateTime customDateTime = const CustomDateTime();
   double sliderValue = 0.0;
 
   late Stats today;
 
+  Stats? currentMyStats;
+
   List<Stats> stats = [];
+  DateTime dateSelected = DateTime.now();
+
+  bool isPlaySound = true;
 
   @override
   void initState() {
@@ -119,11 +122,35 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          currentMenu = Menu.routineQualityTracker;
+                          dateSelected = DateTime.now();
+                          if (currentMenu == Menu.myStats2) {
+                            currentMenu = Menu.myStats;
+                          } else {
+                            currentMenu = Menu.routineQualityTracker;
+                          }
                         });
                       },
                       child: currentMenu == Menu.routineQualityTracker
-                          ? Image.asset("assets/icons/Vector.png")
+                          ? isPlaySound
+                              ? GestureDetector(
+                                  onTap: () {
+                                    player.stop();
+                                    setState(() {
+                                      isPlaySound = false;
+                                    });
+                                    // player
+                                  },
+                                  child: Image.asset("assets/icons/Vector.png"))
+                              : GestureDetector(
+                                  onTap: () {
+                                    player.play(AssetSource(
+                                        'sounds/routinetracker.wav'));
+                                    setState(() {
+                                      isPlaySound = true;
+                                    });
+                                  },
+                                  child:
+                                      Image.asset("assets/icons/Vector2.png"))
                           : Image.asset("assets/icons/Group 2.png")),
                 ),
                 Center(
@@ -327,11 +354,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(width: 5),
           GestureDetector(
-              onTap: () {
-                showCustomDateDiaglog(context);
+              onTap: () async {
+                DateTime date = await showCustomDateDialog(context);
+                dateSelected = date;
+                handleData(isRemove: false);
+
+                setState(() {
+                  activitiesTrackerList = today.activitiesTracker;
+                });
               },
               child: Text(
-                "today: 12.02.24, 12:00",
+                renderDate(dateSelected),
                 style: styles.copyWith(fontWeight: FontWeight.w700),
               )),
         ],
@@ -405,6 +438,7 @@ class _MyHomePageState extends State<MyHomePage> {
           } else {
             dataList.add(text.trim());
           }
+          handleData();
           if (type == 1) {
             today = today.copyWith(activitiesTracker: dataList);
           } else if (type == 2) {
@@ -412,8 +446,10 @@ class _MyHomePageState extends State<MyHomePage> {
           } else if (type == 3) {
             today = today.copyWith(gratitudeJournal: dataList);
           }
-          saveList([today]);
-          print("today:$today");
+
+          stats.add(today);
+          stats.sort((a, b) => b.date.compareTo(a.date));
+          saveList(stats);
         },
         onSubmitted: (value) {
           setState(() {});
@@ -469,10 +505,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(width: 5),
           GestureDetector(
-              onTap: () {
-                showCustomDateDiaglog(context);
+              onTap: () async {
+                DateTime date = await showCustomDateDialog(context);
+                dateSelected = date;
+                handleData(isRemove: false);
+
+                setState(() {
+                  sliderValue = today.percent;
+                  dateSelected = date;
+                });
               },
-              child: Text("today: 12.02.24, 12:00",
+              child: Text(renderDate(dateSelected),
                   style: styles.copyWith(
                       fontWeight: FontWeight.w700, fontSize: 14))),
         ],
@@ -507,9 +550,35 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  handleData({bool isRemove = true}) {
+    today = stats.firstWhere(
+        (element) =>
+            element.date.year == dateSelected.year &&
+            element.date.month == dateSelected.month &&
+            element.date.day == dateSelected.day, orElse: () {
+      return Stats(
+        date: dateSelected,
+        time: "${dateSelected.hour}:${dateSelected.minute}",
+        moodIndex: 0,
+        sleepStatsIndex: 0,
+        percent: 0.5,
+        activitiesTracker: [],
+        plansTracker: [],
+        gratitudeJournal: [],
+      );
+    });
+
+    if (isRemove) {
+      stats.removeWhere((element) =>
+          element.date.year == dateSelected.year &&
+          element.date.month == dateSelected.month &&
+          element.date.day == dateSelected.day);
+    }
+  }
+
   calendarWidget() {
     List paths = ["b3.png", "b2.png", "b4.png", "b5.png", "b1.png"];
-    print("todayasdasdasd:$today");
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -526,11 +595,14 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(width: 5),
             GestureDetector(
-                onTap: () {
-                  showCustomDateDiaglog(context);
+                onTap: () async {
+                  DateTime date = await showCustomDateDialog(context);
+                  setState(() {
+                    dateSelected = date;
+                  });
                 },
                 child: Text(
-                  "today: ${DateFormat('dd.MM.yyyy').format(today.date)} , ${today.time}",
+                  renderDate(dateSelected),
                   style: styles.copyWith(
                       fontWeight: FontWeight.w700, fontSize: 14),
                 )),
@@ -543,8 +615,15 @@ class _MyHomePageState extends State<MyHomePage> {
               paths.length,
               (index) => GestureDetector(
                     onTap: () {
+                      handleData();
                       today = today.copyWith(moodIndex: index);
+                      stats.add(today);
+                      stats.sort((a, b) => b.date.compareTo(a.date));
+
+                      saveList(stats);
+
                       setState(() {
+                        dateSelected = DateTime.now();
                         currentMenu = Menu.routineQualityTracker;
                       });
                     },
@@ -589,11 +668,14 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(width: 5),
             GestureDetector(
-                onTap: () {
-                  showCustomDateDiaglog(context);
+                onTap: () async {
+                  DateTime date = await showCustomDateDialog(context);
+                  setState(() {
+                    dateSelected = date;
+                  });
                 },
                 child: Text(
-                  "today: 12.02.24, 12:00",
+                  renderDate(dateSelected),
                   style: styles.copyWith(fontWeight: FontWeight.w700),
                 )),
           ],
@@ -606,11 +688,17 @@ class _MyHomePageState extends State<MyHomePage> {
               paths.length,
               (index) => GestureDetector(
                     onTap: () {
+                      handleData();
                       today = today.copyWith(sleepStatsIndex: index);
+                      stats.add(today);
+                      stats.sort((a, b) => b.date.compareTo(a.date));
+
+                      saveList(stats);
+
                       setState(() {
+                        dateSelected = DateTime.now();
                         currentMenu = Menu.routineQualityTracker;
                       });
-                      print("today: $today");
                     },
                     child: Column(
                       children: [
@@ -700,10 +788,16 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(width: 5),
           GestureDetector(
-              onTap: () {
-                showCustomDateDiaglog(context);
+              onTap: () async {
+                DateTime date = await showCustomDateDialog(context);
+                dateSelected = date;
+                handleData(isRemove: false);
+
+                setState(() {
+                  planTrackerList = today.plansTracker;
+                });
               },
-              child: Text("today: 12.02.24, 12:00",
+              child: Text(renderDate(dateSelected),
                   style: styles.copyWith(
                       fontWeight: FontWeight.w700, fontSize: 14))),
         ],
@@ -812,11 +906,16 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Slider(
                           value: sliderValue,
                           onChanged: (value) {
+                            handleData();
                             today = today.copyWith(percent: value);
+                            stats.add(today);
+                            stats.sort((a, b) => b.date.compareTo(a.date));
+
+                            saveList(stats);
+
                             setState(() {
                               sliderValue = value;
                             });
-                            print("today: $today");
                           },
                         ),
                       ),
@@ -837,215 +936,207 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   gratitudeJournal() {
-    return SingleChildScrollView(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: GestureDetector(
-              onTap: () {
+    return Column(children: [
+      const SizedBox(height: 100),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 3.0),
+            child: Image.asset(
+              "assets/icons/Calendar.png",
+              width: 20,
+              height: 20,
+            ),
+          ),
+          const SizedBox(width: 5),
+          GestureDetector(
+              onTap: () async {
+                DateTime date = await showCustomDateDialog(context);
+                dateSelected = date;
+                handleData(isRemove: false);
+
                 setState(() {
-                  currentMenu = Menu.routineQualityTracker;
+                  gratitudeJournalList = today.gratitudeJournal;
                 });
               },
-              child: Image.asset("assets/icons/Group 2.png")),
+              child: Text(renderDate(dateSelected),
+                  style: styles.copyWith(
+                      fontWeight: FontWeight.w700, fontSize: 14))),
+        ],
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 18),
+        child: Text(
+          "It is extremely important to remember what you are grateful for in this life. Think of the people and things you love and write gratitude notes!",
+          textAlign: TextAlign.center,
+          style: styles.copyWith(fontWeight: FontWeight.w700, fontSize: 18),
         ),
-        const SizedBox(height: 60),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+      ),
+      const SizedBox(height: 10),
+      Container(
+        width: DeviceSize.width(context),
+        height: DeviceSize.height(context, partNumber: 5) + 20,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 3.0),
-              child: Image.asset(
-                "assets/icons/Calendar.png",
-                width: 20,
-                height: 20,
-              ),
+            Container(
+              height: 50,
+              width: DeviceSize.width(context),
+              decoration: const BoxDecoration(
+                  color: Color.fromRGBO(227, 126, 126, 1),
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16))),
+              padding: const EdgeInsets.all(8),
+              child: Image.asset("assets/icons/gratitude.png"),
             ),
-            const SizedBox(width: 5),
-            GestureDetector(
-                onTap: () {
-                  showCustomDateDiaglog(context);
-                },
-                child: Text("today: 12.02.24, 12:00",
-                    style: styles.copyWith(
-                        fontWeight: FontWeight.w700, fontSize: 14))),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 18),
-          child: Text(
-            "It is extremely important to remember what you are grateful for in this life. Think of the people and things you love and write gratitude notes!",
-            textAlign: TextAlign.center,
-            style: styles.copyWith(fontWeight: FontWeight.w700, fontSize: 18),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          width: DeviceSize.width(context),
-          height: DeviceSize.height(context, partNumber: 6) + 20,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              Container(
-                height: 50,
-                width: DeviceSize.width(context),
-                decoration: const BoxDecoration(
-                    color: Color.fromRGBO(227, 126, 126, 1),
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16))),
-                padding: const EdgeInsets.all(8),
-                child: Image.asset("assets/icons/gratitude.png"),
-              ),
-              Container(
-                color: Colors.white.withOpacity(0.7),
-                padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                height: DeviceSize.height(context, partNumber: 6) - 30,
-                child: Scaffold(
-                  backgroundColor: Colors.transparent,
-                  body: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        ...textFieldList(3, gratitudeJournalList),
-                        ...List.generate(8, (index) {
-                          final controller = TextEditingController();
-                          return TextField(
-                            controller: controller..text = "",
-                            minLines: 1,
-                            maxLines: 3,
-                            textInputAction: TextInputAction.done,
-                            style: styles.copyWith(
-                                fontWeight: FontWeight.w700, fontSize: 21),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(vertical: 5),
-                            ),
-                            enabled: false,
-                          );
-                        })
-                      ],
-                    ),
+            Container(
+              color: Colors.white.withOpacity(0.7),
+              padding: const EdgeInsets.symmetric(horizontal: 15.0),
+              height: DeviceSize.height(context, partNumber: 5) - 30,
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      ...textFieldList(3, gratitudeJournalList),
+                      ...List.generate(8, (index) {
+                        final controller = TextEditingController();
+                        return TextField(
+                          controller: controller..text = "",
+                          minLines: 1,
+                          maxLines: 3,
+                          textInputAction: TextInputAction.done,
+                          style: styles.copyWith(
+                              fontWeight: FontWeight.w700, fontSize: 21),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 5),
+                          ),
+                          enabled: false,
+                        );
+                      })
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
-        )
-      ]),
-    );
+            ),
+          ],
+        ),
+      )
+    ]);
   }
 
   myStats() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GestureDetector(
-            onTap: () {
-              setState(() {
-                currentMenu = Menu.routineQualityTracker;
-              });
-            },
-            child: Image.asset("assets/icons/Group 2.png")),
-      ),
-      const SizedBox(height: 80),
+      const SizedBox(height: 140),
       SizedBox(
         height: DeviceSize.height(context, partNumber: 7) + 20,
         child: ListView.separated(
             shrinkWrap: true,
             itemBuilder: (context, index) {
-              return Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
-                child: Column(
-                  children: [
-                    Container(
-                      height: 50,
-                      padding: const EdgeInsets.only(left: 20),
-                      decoration: const BoxDecoration(
-                          color: Color.fromRGBO(194, 235, 249, 1),
-                          borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16))),
-                      child: Row(children: [
-                        Image.asset(
-                          "assets/icons/calendar2.png",
-                          width: 30,
-                          height: 30,
-                        ),
-                        const SizedBox(width: 10),
-                        Text("today: 12.02.24, 12:00",
-                            style: styles.copyWith(
-                                fontWeight: FontWeight.w700, fontSize: 14))
-                      ]),
-                    ),
-                    Container(
-                      color: Colors.white.withOpacity(0.7),
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                      height: 100,
-                      child: Stack(
-                        children: [
-                          Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(
-                                  height: 10,
-                                ),
-                                Row(
+              return GestureDetector(
+                onTap: () {
+                  currentMyStats = stats[index];
+                  setState(() {
+                    currentMenu = Menu.myStats2;
+                  });
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 50,
+                        padding: const EdgeInsets.only(left: 20),
+                        decoration: const BoxDecoration(
+                            color: Color.fromRGBO(194, 235, 249, 1),
+                            borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16))),
+                        child: Row(children: [
+                          Image.asset(
+                            "assets/icons/calendar2.png",
+                            width: 30,
+                            height: 30,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(renderDate(stats[index].date),
+                              style: styles.copyWith(
+                                  fontWeight: FontWeight.w700, fontSize: 14))
+                        ]),
+                      ),
+                      Container(
+                        color: Colors.white.withOpacity(0.7),
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        height: 100,
+                        child: Stack(
+                          children: [
+                            Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Image.asset(
+                                          "assets/icons/${moodPath[stats[index].moodIndex]}"),
+                                      const SizedBox(width: 5),
+                                      StrokeText(
+                                        text: moodNames[stats[index].moodIndex],
+                                        insideColor:
+                                            moodColors[stats[index].moodIndex],
+                                        outsideColor:
+                                            const Color.fromRGBO(62, 55, 81, 1),
+                                        fontSize: 15,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    children: [
+                                      Image.asset(
+                                          "assets/icons/${sleepsPath[stats[index].sleepStatsIndex]}"),
+                                      const SizedBox(width: 5),
+                                      StrokeText(
+                                        text: sleepNames[
+                                            stats[index].sleepStatsIndex],
+                                        insideColor: sleepTrackColors[
+                                            stats[index].sleepStatsIndex],
+                                        outsideColor:
+                                            const Color.fromRGBO(62, 55, 81, 1),
+                                        fontSize: 15,
+                                      )
+                                    ],
+                                  ),
+                                ]),
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 130.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Image.asset(
-                                        "assets/icons/${moodPath[stats[index].moodIndex]}"),
-                                    const SizedBox(width: 5),
-                                    StrokeText(
-                                      text: moodNames[stats[index].moodIndex],
-                                      insideColor:
-                                          moodColors[stats[index].moodIndex],
-                                      outsideColor:
-                                          const Color.fromRGBO(62, 55, 81, 1),
-                                      fontSize: 15,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-                                Row(
-                                  children: [
-                                    Image.asset(
-                                        "assets/icons/${sleepsPath[stats[index].sleepStatsIndex]}"),
-                                    const SizedBox(width: 5),
-                                    StrokeText(
-                                      text: sleepNames[
-                                          stats[index].sleepStatsIndex],
-                                      insideColor: sleepTrackColors[
-                                          stats[index].sleepStatsIndex],
-                                      outsideColor:
-                                          const Color.fromRGBO(62, 55, 81, 1),
-                                      fontSize: 15,
+                                    progressbarStatic(stats[index].percent),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      "Activities Tracker",
+                                      style: styles.copyWith(
+                                          color: const Color.fromRGBO(
+                                              62, 55, 81, 1),
+                                          fontWeight: FontWeight.w700),
                                     )
                                   ],
                                 ),
-                              ]),
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 130.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  progressbarStatic(stats[index].percent),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    "Activities Tracker",
-                                    style: styles.copyWith(
-                                        color:
-                                            const Color.fromRGBO(62, 55, 81, 1),
-                                        fontWeight: FontWeight.w700),
-                                  )
-                                ],
                               ),
-                            ),
-                          )
-                        ],
+                            )
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -1076,7 +1167,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 height: 30,
               ),
               const SizedBox(width: 10),
-              Text("today: 12.02.24, 12:00",
+              Text(renderDate(currentMyStats!.date),
                   style: styles.copyWith(
                       fontWeight: FontWeight.w700, fontSize: 14))
             ]),
@@ -1094,11 +1185,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   Row(
                     children: [
-                      Image.asset("assets/icons/${moodPath[0]}"),
+                      Image.asset(
+                          "assets/icons/${moodPath[currentMyStats!.moodIndex]}"),
                       const SizedBox(width: 5),
                       StrokeText(
-                        text: moodNames[stats[1].moodIndex],
-                        insideColor: moodColors[stats[1].moodIndex],
+                        text: moodNames[currentMyStats!.moodIndex],
+                        insideColor: moodColors[currentMyStats!.moodIndex],
                         outsideColor: const Color.fromRGBO(62, 55, 81, 1),
                         fontSize: 15,
                       ),
@@ -1107,11 +1199,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Image.asset("assets/icons/${sleepsPath[0]}"),
+                      Image.asset(
+                          "assets/icons/${sleepsPath[currentMyStats!.sleepStatsIndex]}"),
                       const SizedBox(width: 5),
                       StrokeText(
-                        text: sleepNames[stats[1].sleepStatsIndex],
-                        insideColor: sleepTrackColors[stats[1].sleepStatsIndex],
+                        text: sleepNames[currentMyStats!.sleepStatsIndex],
+                        insideColor:
+                            sleepTrackColors[currentMyStats!.sleepStatsIndex],
                         outsideColor: const Color.fromRGBO(62, 55, 81, 1),
                         fontSize: 15,
                       ),
@@ -1127,13 +1221,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (context, index) => Text(
-                            "OK",
+                            currentMyStats!.activitiesTracker[index],
                             style: styles.copyWith(
                                 fontSize: 18, fontWeight: FontWeight.w700),
                           ),
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 5),
-                      itemCount: 3),
+                      itemCount: currentMyStats!.activitiesTracker.length),
                   const SizedBox(height: 10),
                   Image.asset(
                     "assets/images/Group 5.png",
@@ -1144,13 +1238,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (context, index) => Text(
-                            "OK",
+                            currentMyStats!.plansTracker[index],
                             style: styles.copyWith(
                                 fontSize: 18, fontWeight: FontWeight.w700),
                           ),
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 5),
-                      itemCount: 7),
+                      itemCount: currentMyStats!.plansTracker.length),
                   const SizedBox(height: 10),
                   Image.asset(
                     "assets/images/Group 6.png",
@@ -1161,13 +1255,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (context, index) => Text(
-                            "OK",
+                            currentMyStats!.gratitudeJournal[index],
                             style: styles.copyWith(
                                 fontSize: 18, fontWeight: FontWeight.w700),
                           ),
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 5),
-                      itemCount: 5),
+                      itemCount: currentMyStats!.gratitudeJournal.length),
                   const SizedBox(height: 30),
                 ],
               ),
@@ -1186,7 +1280,11 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           children: [
             Positioned(
-                left: 5, child: Text("${(percent * 100).toStringAsFixed(0)}%")),
+                left: 0,
+                child: Text(
+                  "${(percent * 100).toStringAsFixed(0)}%",
+                  style: murechoStyle.copyWith(fontWeight: FontWeight.w700),
+                )),
             SizedBox(
               width: DeviceSize.width(context, partNumber: 2) + 25,
               child: Stack(
@@ -1219,7 +1317,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
             ),
-            const Positioned(right: 0, child: Text("100%")),
+            Positioned(
+                right: 0,
+                child: Text(
+                  "100%",
+                  style: murechoStyle.copyWith(fontWeight: FontWeight.w700),
+                )),
           ],
         ),
       ),
@@ -1230,19 +1333,18 @@ class _MyHomePageState extends State<MyHomePage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> encodedList =
         list.map((item) => jsonEncode(item.toJson())).toList();
-    print("encodedList:$encodedList");
     prefs.setStringList('stats_list', encodedList);
   }
 
   Future<void> getList() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? encodedList = prefs.getStringList('stats_list');
-    print("fetch encodedList:$encodedList");
     setState(() {
       if (encodedList != null) {
         stats = encodedList
             .map((String item) => Stats.fromJson(jsonDecode(item)))
             .toList();
+        stats.sort((a, b) => b.date.compareTo(a.date));
       }
 
       today = stats.firstWhere(
@@ -1265,8 +1367,33 @@ class _MyHomePageState extends State<MyHomePage> {
       activitiesTrackerList = today.activitiesTracker;
       planTrackerList = today.plansTracker;
       gratitudeJournalList = today.gratitudeJournal;
-      print("stats:$activitiesTrackerList");
+      sliderValue = today.percent;
     });
+  }
+
+  bool isNotToday(DateTime dateTime) {
+    DateTime now = DateTime.now();
+    return dateTime.year != now.year ||
+        dateTime.month != now.month ||
+        dateTime.day != now.day;
+  }
+
+  bool isYesterday(DateTime dateTime) {
+    DateTime now = DateTime.now();
+    DateTime yesterday = now.subtract(const Duration(days: 1));
+    return dateTime.year == yesterday.year &&
+        dateTime.month == yesterday.month &&
+        dateTime.day == yesterday.day;
+  }
+
+  renderDate(DateTime date) {
+    String text = "";
+    if (!isNotToday(date)) {
+      text = "today: ";
+    } else if (isYesterday(date)) {
+      text = "yesterday: ";
+    }
+    return "$text${DateFormat('dd.MM.yyyy').format(date)} , ${"${date.hour}:${date.minute}"}";
   }
 }
 

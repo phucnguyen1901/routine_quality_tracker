@@ -4,7 +4,8 @@ import 'package:routine_quality_tracker/device_size.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CustomDateTime extends StatefulWidget {
-  const CustomDateTime({super.key});
+  const CustomDateTime({super.key, required this.callback});
+  final Function(DateTime) callback;
 
   @override
   State<CustomDateTime> createState() => _CustomDateTimeState();
@@ -58,46 +59,54 @@ class _CustomDateTimeState extends State<CustomDateTime> {
             ],
           ),
           TableCalendar(
-              focusedDay: dateTime,
-              firstDay: DateTime(2018),
-              lastDay: DateTime(2100),
-              currentDay: DateTime.now(),
-              headerVisible: false,
-              daysOfWeekHeight: 32,
-              daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(
-                    color: Color.fromRGBO(252, 221, 236, 1),
-                    fontSize: 18,
-                  ),
-                  weekendStyle: TextStyle(
-                    color: Color.fromRGBO(243, 106, 106, 1),
-                    fontSize: 18,
-                  )),
-              calendarStyle: const CalendarStyle(
-                  defaultTextStyle: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600),
-                  weekendTextStyle: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600)),
-              onDaySelected: (date, date2) {
-                setState(() {
-                  dateTime = date2;
-                });
-              }),
+            focusedDay: dateTime,
+            firstDay: DateTime(2018),
+            lastDay: DateTime(2100),
+            currentDay: dateTime,
+            headerVisible: false,
+            daysOfWeekHeight: 32,
+            daysOfWeekStyle: const DaysOfWeekStyle(
+                weekdayStyle: TextStyle(
+                  color: Color.fromRGBO(252, 221, 236, 1),
+                  fontSize: 18,
+                ),
+                weekendStyle: TextStyle(
+                  color: Color.fromRGBO(243, 106, 106, 1),
+                  fontSize: 18,
+                )),
+            calendarStyle: const CalendarStyle(
+                defaultTextStyle:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                weekendTextStyle: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
+            onDaySelected: (date, date2) {
+              setState(() {
+                dateTime = date2;
+                widget.callback(dateTime);
+              });
+            },
+          ),
         ],
       ),
     );
   }
-
-  get getDateTime => dateTime;
 }
 
-showCustomDateDiaglog(BuildContext context) {
-  return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-          contentPadding: EdgeInsets.zero,
-          content: SizedBox(
-              width: DeviceSize.width(context, partNumber: 10),
-              height: DeviceSize.height(context, partNumber: 5) + 50,
-              child: const CustomDateTime())));
+Future<DateTime> showCustomDateDialog(BuildContext context) async {
+  DateTime dateTime = DateTime.now();
+
+  await showDialog<DateTime>(
+    context: context,
+    builder: (context) => AlertDialog(
+      contentPadding: EdgeInsets.zero,
+      content: SizedBox(
+        width: DeviceSize.width(context, partNumber: 10),
+        height: DeviceSize.height(context, partNumber: 5) + 50,
+        child: CustomDateTime(callback: (DateTime newDateTime) {
+          dateTime = newDateTime;
+        }),
+      ),
+    ),
+  );
+  return dateTime;
 }
