@@ -4,8 +4,10 @@ import 'package:routine_quality_tracker/device_size.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CustomDateTime extends StatefulWidget {
-  const CustomDateTime({super.key, required this.callback});
+  const CustomDateTime(
+      {super.key, required this.callback, required this.newDateTime});
   final Function(DateTime) callback;
+  final DateTime newDateTime;
 
   @override
   State<CustomDateTime> createState() => _CustomDateTimeState();
@@ -13,6 +15,11 @@ class CustomDateTime extends StatefulWidget {
 
 class _CustomDateTimeState extends State<CustomDateTime> {
   DateTime dateTime = DateTime.now();
+  @override
+  void initState() {
+    dateTime = widget.newDateTime;
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +99,8 @@ class _CustomDateTimeState extends State<CustomDateTime> {
   }
 }
 
-Future<DateTime> showCustomDateDialog(BuildContext context) async {
+Future<DateTime> showCustomDateDialog(
+    BuildContext context, DateTime date) async {
   DateTime dateTime = DateTime.now();
 
   await showDialog<DateTime>(
@@ -102,9 +110,11 @@ Future<DateTime> showCustomDateDialog(BuildContext context) async {
       content: SizedBox(
         width: DeviceSize.width(context, partNumber: 10),
         height: DeviceSize.height(context, partNumber: 5) + 50,
-        child: CustomDateTime(callback: (DateTime newDateTime) {
-          dateTime = newDateTime;
-        }),
+        child: CustomDateTime(
+            newDateTime: date,
+            callback: (DateTime newDateTime) {
+              dateTime = newDateTime;
+            }),
       ),
     ),
   );
